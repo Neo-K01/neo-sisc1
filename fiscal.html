@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>FiscalFlow - Gestão de Fechamento Simples Nacional</title>
+    <!-- Google Fonts & Tailwind + Font Awesome -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- ShadCN estilo via Tailwind custom -->
+    <style>
+        * {
+            font-family: 'Inter', sans-serif;
+        }
+        body {
+            background: #f4f6fa;
+        }
+        /* transições e animações suaves */
+        .step-card {
+            transition: all 0.2s ease-in-out;
+        }
+        .step-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 20px -12px rgba(0,0,0,0.1);
+        }
+        .fade-enter {
+            opacity: 0;
+            transform: translateY(6px);
+        }
+        .fade-active {
+            opacity: 1;
+            transform: translateY(0);
+            transition: 0.25s ease-out;
+        }
+        .alert-pulse {
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0% { opacity: 0.6; }
+            70% { opacity: 1; }
+            100% { opacity: 0.6; }
+        }
+        .custom-scroll::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scroll::-webkit-scrollbar-track {
+            background: #e9eef3;
+            border-radius: 8px;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background: #b9c3cf;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+<div id="app" class="max-w-[1600px] mx-auto px-4 md:px-6 py-5">
+    <!-- CABEÇALHO + NAVBAR PRINCIPAL -->
+    <div class="flex flex-wrap items-center justify-between gap-3 mb-6">
+        <div class="flex items-center gap-3">
+            <div class="bg-indigo-600 w-10 h-10 rounded-xl flex items-center justify-center shadow-md">
+                <i class="fas fa-chart-line text-white text-xl"></i>
+            </div>
+            <h1 class="text-2xl font-bold tracking-tight text-slate-800">FiscalFlow <span class="text-indigo-600 font-medium">| Simples Nacional</span></h1>
+        </div>
+        <div class="flex items-center gap-2 text-sm bg-white/70 backdrop-blur-sm px-3 py-1.5 rounded-full shadow-sm">
+            <i class="fas fa-robot text-indigo-500"></i>
+            <span class="text-slate-600">IA Assistente ativa</span>
+            <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+        </div>
+    </div>
+
+    <!-- NAVBAR COMPLETA COM TODAS ETAPAS + CARTEIRA -->
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-1.5 mb-6 overflow-x-auto">
+        <div class="flex flex-nowrap gap-1 min-w-max">
+            <button v-for="(tab, idx) in tabs" :key="idx" @click="currentTab = tab.id; checkCrossImpacts()"
+                class="px-5 py-2.5 rounded-xl text-sm font-medium transition-all flex items-center gap-2"
+                :class="currentTab === tab.id ? 'bg-indigo-50 text-indigo-700 shadow-sm border border-indigo-200' : 'text-slate-500 hover:bg-slate-50'">
+                <i :class="tab.icon"></i> {{ tab.label }}
+                <span v-if="tab.badge && getTabBadge(tab.id)" class="ml-1 bg-amber-100 text-amber-700 text-xs px-1.5 py-0.5 rounded-full">{{ getTabBadge(tab.id) }}</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- CONTEÚDO DINÂMICO -->
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+        <!-- CARTEIRA (Empresas) -->
+        <div v-if="currentTab === 'carteira'" class="p-6">
+            <div class="flex justify-between items-center mb-5 flex-wrap gap-3">
+                <div>
+                    <h2 class="text-xl font-semibold text-slate-800"><i class="fas fa-building mr-2 text-indigo-500"></i>Minhas Empresas</h2>
+                    <p class="text-slate-500 text-sm mt-1">Gerencie empresas do Simples Nacional e controle o fechamento fiscal</p>
+                </div>
+                <button @click="novaEmpresa" class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm px-4 py-2 rounded-xl shadow-sm transition flex items-center gap-2"><i class="fas fa-plus"></i> Nova empresa</button>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-slate-200">
+                    <thead class="bg-slate-50">
+                        <tr><th class="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase">ID</th><th class="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase">Nome</th><th class="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase">CNPJ</th><th class="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase">Regime</th><th class="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase">Fechamento</th><th class="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase">Ações</th></tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        <tr v-for="emp in empresas" :key="emp.id" class="hover:bg-slate-50 transition">
+                            <td class="px-5 py-3 text-sm text-slate-700">{{ emp.id }}</td>
+                            <td class="px-5 py-3 font-medium text-slate-800">{{ emp.nome }}</td>
+                            <td class="px-5 py-3 text-sm">{{ emp.cnpj }}</td>
+                            <td class="px-5 py-3 text-sm"><span class="bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full text-xs">Simples Nacional</span></td>
+                            <td class="px-5 py-3">
+                                <span :class="{'bg-amber-100 text-amber-700': emp.status === 'EM_ANDAMENTO', 'bg-red-100 text-red-700': emp.status === 'NAO_FEITO', 'bg-green-100 text-green-700': emp.status === 'FEITO'}" class="text-xs px-2 py-1 rounded-full font-medium">
+                                    {{ { NAO_FEITO: 'Não feito', EM_ANDAMENTO: 'Em andamento', FEITO: 'Feito' }[emp.status] }}
+                                </span>
+                            </td>
+                            <td class="px-5 py-3 flex gap-2">
+                                <button @click="selecionarEmpresa(emp)" class="text-indigo-600 hover:text-indigo-800 text-sm"><i class="fas fa-edit"></i> Processar</button>
+                                <button @click="removerEmpresa(emp.id)" class="text-rose-500 hover:text-rose-700 text-sm"><i class="fas fa-trash-alt"></i></button>
+                            </td>
+                        </tr>
+                        <tr v-if="empresas.length === 0"><td colspan="6" class="text-center py-8 text-slate-400">Nenhuma empresa cadastrada. Clique em "Nova empresa".</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div v-if="empresaSelecionada" class="mt-6 p-4 bg-indigo-50/40 rounded-xl border border-indigo-100">
+                <div class="flex justify-between items-center"><span class="font-semibold"><i class="fas fa-check-circle text-indigo-600"></i> Empresa ativa:</span> <span class="text-indigo-800 font-bold">{{ empresaSelecionada.nome }}</span><button @click="empresaSelecionada = null" class="text-xs text-slate-400"><i class="fas fa-times"></i> Trocar</button></div>
+                <div class="text-sm text-slate-600 mt-1">Processo de fechamento atrelado à empresa selecionada. Todas as etapas afetam esse CNPJ.</div>
+            </div>
+        </div>
+
+        <!-- ETAPAS DO FECHAMENTO (1 a 11) -->
+        <div v-else-if="currentTab !== 'carteira'" class="p-6">
+            <!-- Alerta de empresa não selecionada -->
+            <div v-if="!empresaSelecionada" class="mb-5 bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-center gap-3 text-amber-700">
+                <i class="fas fa-exclamation-triangle text-lg"></i> <span>Nenhuma empresa selecionada. Vá até <strong>Carteira</strong> e selecione/adicione uma empresa para realizar o fechamento.</span>
+                <button @click="currentTab='carteira'" class="ml-auto bg-amber-100 px-3 py-1 rounded-lg text-sm">Ir para Carteira</button>
+            </div>
+            
+            <div v-else>
+                <!-- Título etapa -->
+                <div class="flex justify-between items-center flex-wrap gap-3 mb-6 pb-2 border-b border-slate-200">
+                    <div>
+                        <h2 class="text-2xl font-semibold flex items-center gap-2"><i :class="etapasInfo[currentTab]?.icon" class="text-indigo-500 text-xl"></i> {{ etapasInfo[currentTab]?.titulo || currentTab }}</h2>
+                        <p class="text-slate-500 text-sm mt-1">{{ etapasInfo[currentTab]?.descricao }}</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <button @click="salvarEtapaAtual" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm shadow-sm flex items-center gap-2"><i class="fas fa-save"></i> Salvar alterações</button>
+                        <button @click="recalcularTudo" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-4 py-2 rounded-lg text-sm"><i class="fas fa-sync-alt"></i> Recalcular DAS</button>
+                    </div>
+                </div>
+
+                <!-- CONTEÚDO ESPECÍFICO DE CADA ETAPA (simulação interativa / campos manuais) -->
+                <div class="space-y-5">
+                    <!-- ETAPA 1: Documentos -->
+                    <div v-if="currentTab === 'etapa1'" class="grid gap-4">
+                        <div class="bg-slate-50 p-5 rounded-xl"><i class="fas fa-file-invoice text-indigo-500 mr-2"></i> <strong>Documentos do mês (recebidos manualmente)</strong><br><textarea v-model="dadosFiscais[empresaSelecionada.id].docsObs" rows="2" class="w-full mt-2 border rounded-lg p-2 text-sm" placeholder="Ex: NF-e 10 notas emitidas, XMLs importados via API..."></textarea></div>
+                        <div class="flex gap-3 text-sm"><i class="fas fa-microchip text-indigo-400"></i> IA sugeriu: Verificar consistência de 3 NF-e pendentes. <button @click="simularIA('docs')" class="text-indigo-600 underline">Simular IA</button></div>
+                    </div>
+                    <!-- ETAPA 2: Importar XML -->
+                    <div v-else-if="currentTab === 'etapa2'"><div class="bg-slate-50 p-5 rounded-xl"><p><strong>XMLs importados</strong> (último lote)</p><input v-model="dadosFiscais[empresaSelecionada.id].xmlLote" class="border rounded w-full p-2 mt-2" placeholder="Qtd XMLs: 12, OK"></div></div>
+                    <!-- ETAPA 3: Conferir notas -->
+                    <div v-else-if="currentTab === 'etapa3'"><div class="bg-slate-50 p-5 rounded-xl"><label>Notas conferidas? <input type="checkbox" v-model="dadosFiscais[empresaSelecionada.id].notasConferidas" class="ml-2"></label><p class="text-xs mt-2 text-slate-500">Diferença SEFAZ: {{ dadosFiscais[empresaSelecionada.id].diferencaSEFAZ || '0' }}</p><button @click="validarNotas" class="mt-2 text-indigo-600 text-sm">Validar automaticamente</button></div></div>
+                    <!-- ETAPA 4: Tributação produtos -->
+                    <div v-else-if="currentTab === 'etapa4'"><div>NCM/CSOSN:<input v-model="dadosFiscais[empresaSelecionada.id].ncmInfo" class="border p-1 rounded"><button @click="simularIA('tributacao')" class="ml-2 bg-indigo-100 px-2 py-1 rounded">IA sugerir CSOSN</button></div></div>
+                    <!-- ETAPA 5: separar receitas -->
+                    <div v-else-if="currentTab === 'etapa5'"><div><label>Receita Comércio: <input type="number" v-model.number="dadosFiscais[empresaSelecionada.id].receitaComercio" class="border rounded p-1 w-32"></label><br><label>Receita Serviços: <input type="number" v-model.number="dadosFiscais[empresaSelecionada.id].receitaServicos" class="border rounded p-1 w-32"></label></div></div>
+                    <!-- ETAPA 6: Fator R -->
+                    <div v-else-if="currentTab === 'etapa6'"><div><label>Folha 12 meses: R$ <input v-model.number="dadosFiscais[empresaSelecionada.id].folha12" class="border rounded p-1 w-36"></label><label class="ml-4">RBT12: R$ <input v-model.number="dadosFiscais[empresaSelecionada.id].rbt12" class="border rounded p-1 w-36"></label><div class="mt-2 text-sm">Fator R = {{ calcFatorR() }}% → Anexo {{ calcFatorR() >=28 ? 'III' : 'V' }}</div></div></div>
+                    <!-- ETAPA 7: Fechar faturamento -->
+                    <div v-else-if="currentTab === 'etapa7'"><div><label>Receita Bruta Mês: R$ <input v-model.number="dadosFiscais[empresaSelecionada.id].faturamentoMes" class="border rounded p-1"></label><div>Alíquota Efetiva calculada: {{ calcularAliquotaEfetiva() }}%</div></div></div>
+                    <!-- ETAPA 8: Apurar DAS -->
+                    <div v-else-if="currentTab === 'etapa8'"><div class="bg-indigo-50 p-4 rounded-xl"><strong>Simulação DAS mensal:</strong> R$ {{ calcularDASMensal() }} <button @click="simularIA('DAS')" class="ml-3 text-indigo-700 text-sm">Simular pela IA</button></div></div>
+                    <!-- ETAPA 9: Gerar DAS -->
+                    <div v-else-if="currentTab === 'etapa9'"><div><input v-model="dadosFiscais[empresaSelecionada.id].dasPdfLink" placeholder="Link boleto/PDF gerado" class="border p-2 w-full rounded"><button class="bg-green-600 text-white px-3 py-1 rounded" @click="gerarDAS">Gerar novo DAS</button></div></div>
+                    <!-- ETAPA 10: Obrigações acessórias -->
+                    <div v-else-if="currentTab === 'etapa10'"><div><span class="font-semibold">DEFIS:</span> <input type="checkbox" v-model="dadosFiscais[empresaSelecionada.id].defisOk"> <span class="ml-4">DCTFWeb:</span> <input type="checkbox" v-model="dadosFiscais[empresaSelecionada.id].dctfOk"></div><div class="text-xs text-slate-400 mt-2">Obrigações entregues automaticamente via sistema</div></div>
+                    <!-- ETAPA 11: Arquivar -->
+                    <div v-else-if="currentTab === 'etapa11'"><div><i class="fas fa-archive"></i> XMLs e relatórios salvos. <button @click="finalizarFechamento" class="bg-emerald-600 text-white px-5 py-2 rounded-lg">Finalizar fechamento do mês</button><div v-if="ultimoFechamentoMsg" class="mt-3 text-green-600">{{ ultimoFechamentoMsg }}</div></div></div>
+                </div>
+
+                <!-- Barra progresso etapas -->
+                <div class="mt-8 pt-4 border-t border-slate-100 flex items-center justify-between">
+                    <div class="text-xs text-slate-500"><i class="fas fa-brain text-indigo-400"></i> IA ativa: sugestões e alertas de consistência </div>
+                    <div class="flex gap-2">
+                        <button @click="voltarEtapa" :disabled="!podeVoltar" class="px-4 py-1.5 bg-slate-200 rounded-lg disabled:opacity-40 text-sm"><i class="fas fa-chevron-left"></i> Anterior</button>
+                        <button @click="avancarEtapa" :disabled="!podeAvancar" class="px-4 py-1.5 bg-indigo-600 text-white rounded-lg text-sm disabled:opacity-50">Próxima <i class="fas fa-chevron-right"></i></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/vue@2.7.16/dist/vue.js"></script>
+<script>
+    // Estrutura de dados (localStorage)
+    const STORAGE_KEY = 'fiscalflow_data';
+    
+    let defaultEmpresas = [
+        { id: '1', nome: 'Tech Solutions LTDA', cnpj: '12.345.678/0001-90', status: 'EM_ANDAMENTO' },
+        { id: '2', nome: 'Comercial Alpha', cnpj: '98.765.432/0001-11', status: 'NAO_FEITO' }
+    ];
+    
+    // dados fiscais por empresa
+    let defaultDados = {};
+    
+    function initDefaultDados(empId) {
+        return {
+            docsObs: 'XMLs recebidos via integração ERP. Pendente 1 NF-e Cancelada.',
+            xmlLote: 'Importado 22 XMLs',
+            notasConferidas: false,
+            diferencaSEFAZ: 'R$ 0,00',
+            ncmInfo: 'NCM 8471, CSOSN 102',
+            receitaComercio: 45000,
+            receitaServicos: 28000,
+            folha12: 21000,
+            rbt12: 732000,
+            faturamentoMes: 73000,
+            dasValorSimulado: 0,
+            dasPdfLink: '',
+            defisOk: false,
+            dctfOk: false,
+            fechamentoFinalizado: false
+        };
+    }
+    
+    let dadosArmazenados = localStorage.getItem(STORAGE_KEY);
+    let empresasData, dadosFiscaisObj;
+    if (dadosArmazenados) {
+        let parsed = JSON.parse(dadosArmazenados);
+        empresasData = parsed.empresas;
+        dadosFiscaisObj = parsed.dadosFiscais;
+        // compatibilidade
+        empresasData.forEach(emp => { if(!dadosFiscaisObj[emp.id]) dadosFiscaisObj[emp.id] = initDefaultDados(emp.id); });
+    } else {
+        empresasData = defaultEmpresas;
+        dadosFiscaisObj = {};
+        empresasData.forEach(emp => { dadosFiscaisObj[emp.id] = initDefaultDados(emp.id); });
+    }
+    
+    new Vue({
+        el: '#app',
+        data: {
+            currentTab: 'carteira',
+            empresas: empresasData,
+            dadosFiscais: dadosFiscaisObj,
+            empresaSelecionada: null,
+            ultimoFechamentoMsg: '',
+            tabs: [
+                { id: 'carteira', label: 'Carteira', icon: 'fas fa-briefcase' },
+                { id: 'etapa1', label: '1. Documentos', icon: 'fas fa-file-alt' },
+                { id: 'etapa2', label: '2. Importar XML', icon: 'fas fa-database' },
+                { id: 'etapa3', label: '3. Conferir Notas', icon: 'fas fa-check-double' },
+                { id: 'etapa4', label: '4. Tributação', icon: 'fas fa-tags' },
+                { id: 'etapa5', label: '5. Separar Receitas', icon: 'fas fa-chart-pie' },
+                { id: 'etapa6', label: '6. Fator R', icon: 'fas fa-calculator' },
+                { id: 'etapa7', label: '7. Faturamento', icon: 'fas fa-chart-line' },
+                { id: 'etapa8', label: '8. Apurar DAS', icon: 'fas fa-file-invoice-dollar' },
+                { id: 'etapa9', label: '9. Gerar DAS', icon: 'fas fa-barcode' },
+                { id: 'etapa10', label: '10. Obrigações', icon: 'fas fa-clipboard-list' },
+                { id: 'etapa11', label: '11. Arquivar', icon: 'fas fa-archive' }
+            ],
+            etapasInfo: {
+                etapa1: { titulo: 'Receber e organizar documentos', descricao: 'Coleta de NF-e, NFS-e, extratos.', icon: 'fas fa-inbox' },
+                etapa2: { titulo: 'Baixar e importar XMLs', descricao: 'Sistema fiscal, CFOP, CST.', icon: 'fas fa-upload' },
+                etapa3: { titulo: 'Conferir notas emitidas/recebidas', descricao: 'Validação duplicatas, cancelamentos.', icon: 'fas fa-clipboard' },
+                etapa4: { titulo: 'Conferir tributação', descricao: 'NCM, CSOSN, Substituição tributária.', icon: 'fas fa-balance-scale' },
+                etapa5: { titulo: 'Separar receitas por tipo', descricao: 'Comércio, serviços, monofásico.', icon: 'fas fa-layer-group' },
+                etapa6: { titulo: 'Conferir Fator R', descricao: 'Folha / RBT12 para Anexo III/V.', icon: 'fas fa-percent' },
+                etapa7: { titulo: 'Fechar faturamento do mês', descricao: 'Totaliza RBT12 e alíquota efetiva.', icon: 'fas fa-chart-simple' },
+                etapa8: { titulo: 'Apurar DAS no PGDAS-D', descricao: 'Cálculo dos impostos unificados.', icon: 'fas fa-calculator' },
+                etapa9: { titulo: 'Gerar e conferir DAS', descricao: 'Emissão boleto, envio cliente.', icon: 'fas fa-receipt' },
+                etapa10: { titulo: 'Entregar obrigações acessórias', descricao: 'DEFIS, DCTFWeb, eSocial.', icon: 'fas fa-tasks' },
+                etapa11: { titulo: 'Arquivar e validar pendências', descricao: 'Salvar XMLs, certidões.', icon: 'fas fa-database' }
+            }
+        },
+        computed: {
+            ordemEtapas() {
+                return ['etapa1','etapa2','etapa3','etapa4','etapa5','etapa6','etapa7','etapa8','etapa9','etapa10','etapa11'];
+            },
+            idxAtual() {
+                return this.ordemEtapas.indexOf(this.currentTab);
+            },
+            podeAvancar() {
+                if(this.currentTab === 'carteira') return false;
+                return this.idxAtual < this.ordemEtapas.length-1;
+            },
+            podeVoltar() {
+                if(this.currentTab === 'carteira') return false;
+                return this.idxAtual > 0;
+            }
+        },
+        watch: {
+            dadosFiscais: {
+                deep: true,
+                handler() { this.saveToLocal(); this.atualizarStatusEmpresa(); }
+            },
+            empresas: {
+                deep: true,
+                handler() { this.saveToLocal(); }
+            }
+        },
+        mounted() {
+            if(this.empresas.length > 0 && !this.empresaSelecionada) {
+                let pendente = this.empresas.find(e => e.status === 'EM_ANDAMENTO');
+                if(pendente) this.empresaSelecionada = pendente;
+                else this.empresaSelecionada = this.empresas[0];
+            }
+            this.checkCrossImpacts();
+        },
+        methods: {
+            saveToLocal() {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify({ empresas: this.empresas, dadosFiscais: this.dadosFiscais }));
+            },
+            atualizarStatusEmpresa() {
+                if(!this.empresaSelecionada) return;
+                const dados = this.dadosFiscais[this.empresaSelecionada.id];
+                const todasEtapas = this.ordemEtapas;
+                let todasOK = true;
+                for(let etapa of todasEtapas) {
+                    if(etapa === 'etapa11' && dados.fechamentoFinalizado) continue;
+                    if(etapa === 'etapa3' && !dados.notasConferidas) todasOK = false;
+                    if(etapa === 'etapa10' && (!dados.defisOk || !dados.dctfOk)) todasOK = false;
+                }
+                if(dados.fechamentoFinalizado) {
+                    this.empresaSelecionada.status = 'FEITO';
+                } else if(todasOK && dados.notasConferidas && dados.dasValorSimulado > 0) {
+                    this.empresaSelecionada.status = 'EM_ANDAMENTO';
+                } else {
+                    if(this.empresaSelecionada.status !== 'FEITO') this.empresaSelecionada.status = 'EM_ANDAMENTO';
+                }
+                let idx = this.empresas.findIndex(e=> e.id === this.empresaSelecionada.id);
+                if(idx !== -1) this.empresas[idx].status = this.empresaSelecionada.status;
+            },
+            selecionarEmpresa(emp) {
+                this.empresaSelecionada = emp;
+                if(!this.dadosFiscais[emp.id]) this.dadosFiscais[emp.id] = initDefaultDados(emp.id);
+                this.currentTab = 'etapa1';
+                this.checkCrossImpacts();
+            },
+            novaEmpresa() {
+                let newId = Date.now().toString();
+                let nova = { id: newId, nome: 'Nova Empresa', cnpj: '00.000.000/0001-00', status: 'NAO_FEITO' };
+                this.empresas.push(nova);
+                this.dadosFiscais[newId] = initDefaultDados(newId);
+                this.selecionarEmpresa(nova);
+            },
+            removerEmpresa(id) {
+                if(this.empresaSelecionada && this.empresaSelecionada.id === id) this.empresaSelecionada = null;
+                this.empresas = this.empresas.filter(e=> e.id !== id);
+                delete this.dadosFiscais[id];
+                if(this.empresas.length) this.selecionarEmpresa(this.empresas[0]);
+                this.saveToLocal();
+            },
+            checkCrossImpacts() {
+                if(!this.empresaSelecionada) return;
+                let dados = this.dadosFiscais[this.empresaSelecionada.id];
+                let fatorR = this.calcFatorR();
+                let anexoCorreto = fatorR >=28 ? 'III' : 'V';
+                let mensagem = null;
+                if(this.currentTab === 'etapa6' && anexoCorreto === 'V' && dados.receitaServicos > 0) mensagem = 'ATENÇÃO: Fator R abaixo de 28% -> Anexo V (alíquota maior)';
+                if(this.currentTab === 'etapa5' && dados.receitaServicos > dados.receitaComercio*1.5) mensagem = 'IA alerta: Receita de serviços alta, confira anexo e retenções ISS.';
+                if(mensagem) {
+                    let alertDiv = document.createElement('div');
+                    alertDiv.className = 'fixed bottom-5 right-5 bg-amber-100 border-l-4 border-amber-500 p-3 rounded shadow-lg z-50 text-sm';
+                    alertDiv.innerHTML = `<i class="fas fa-bell mr-2"></i> ${mensagem}`;
+                    document.body.appendChild(alertDiv);
+                    setTimeout(()=> alertDiv.remove(), 4000);
+                }
+            },
+            calcFatorR() {
+                let f = this.dadosFiscais[this.empresaSelecionada.id];
+                if(!f.rbt12 || f.rbt12 === 0) return 0;
+                return ((f.folha12 / f.rbt12)*100).toFixed(2);
+            },
+            calcularAliquotaEfetiva() {
+                let f = this.dadosFiscais[this.empresaSelecionada.id];
+                let rbt12 = f.rbt12 || 1;
+                let aliqBase = 0.06, deducao = 0;
+                if(rbt12 <= 180000) { aliqBase = 0.04; deducao = 0; }
+                else if(rbt12 <= 360000) { aliqBase = 0.073; deducao = 5940; }
+                else if(rbt12 <= 720000) { aliqBase = 0.095; deducao = 13860; }
+                else if(rbt12 <= 1800000) { aliqBase = 0.107; deducao = 22500; }
+                else if(rbt12 <= 3600000) { aliqBase = 0.143; deducao = 87300; }
+                else { aliqBase = 0.19; deducao = 378000;}
+                let efetiva = ((rbt12 * aliqBase) - deducao) / rbt12 * 100;
+                return efetiva.toFixed(2);
+            },
+            calcularDASMensal() {
+                let f = this.dadosFiscais[this.empresaSelecionada.id];
+                let fat = f.faturamentoMes || 0;
+                let aliquotaEfet = parseFloat(this.calcularAliquotaEfetiva()) / 100;
+                let valor = fat * aliquotaEfet;
+                f.dasValorSimulado = valor;
+                return valor.toFixed(2);
+            },
+            simularIA(tipo) {
+                let msg = '';
+                if(tipo === 'docs') msg = 'IA: Foram detectados 2 XMLs de entrada com CFOP incorreto (CFOP 5102 -> Sugerido 5101).';
+                if(tipo === 'tributacao') msg = 'IA: Produto com NCM 84713000 recomendado CSOSN 500 (ST).';
+                if(tipo === 'DAS') msg = `IA: O DAS estimado é R$ ${this.calcularDASMensal()} com repartição: ICMS 33%, ISS 17%, CPP 28%...`;
+                alert(msg);
+            },
+            validarNotas() {
+                this.dadosFiscais[this.empresaSelecionada.id].notasConferidas = true;
+                alert("Notas validadas com sucesso. Diferença SEFAZ ok.");
+            },
+            gerarDAS() {
+                let valor = this.calcularDASMensal();
+                this.dadosFiscais[this.empresaSelecionada.id].dasPdfLink = `DAS_${this.empresaSelecionada.cnpj}_mes_atual.pdf`;
+                alert(`DAS gerado no valor de R$ ${valor} (PDF mockado)`);
+            },
+            finalizarFechamento() {
+                let dados = this.dadosFiscais[this.empresaSelecionada.id];
+                dados.fechamentoFinalizado = true;
+                this.ultimoFechamentoMsg = `Fechamento concluído para ${this.empresaSelecionada.nome}. Documentos arquivados.`;
+                let idx = this.empresas.findIndex(e=> e.id === this.empresaSelecionada.id);
+                if(idx !== -1) this.empresas[idx].status = 'FEITO';
+                this.saveToLocal();
+            },
+            recalcularTudo() {
+                this.calcularDASMensal();
+                alert("Recálculo concluído! Verifique etapa 8 (Apurar DAS).");
+            },
+            salvarEtapaAtual() {
+                alert("Dados da etapa salvos com sucesso!");
+                this.checkCrossImpacts();
+                this.saveToLocal();
+            },
+            avancarEtapa() {
+                if(this.podeAvancar) {
+                    this.currentTab = this.ordemEtapas[this.idxAtual+1];
+                    this.checkCrossImpacts();
+                }
+            },
+            voltarEtapa() {
+                if(this.podeVoltar) {
+                    this.currentTab = this.ordemEtapas[this.idxAtual-1];
+                    this.checkCrossImpacts();
+                }
+            },
+            getTabBadge(tabId) {
+                if(!this.empresaSelecionada) return null;
+                if(tabId === 'etapa8') return 'pendente';
+                return null;
+            }
+        }
+    });
+</script>
+</body>
+</html>

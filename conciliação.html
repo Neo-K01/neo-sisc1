@@ -1,0 +1,1266 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIS-C | Conciliação Otimizada</title>
+    <style>
+        :root {
+            --bg: #f0f2f5;
+            --surface: #fff;
+            --primary: #2563eb;
+            --success: #059669;
+            --danger: #dc2626;
+            --warning: #d97706;
+            --text: #1f2937;
+            --muted: #6b7280;
+            --border: #e5e7eb;
+            --shadow: 0 1px 3px rgba(0,0,0,0.1);
+            --radius: 6px;
+            --transition: 0.15s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font: 13px/1.4 system-ui, -apple-system, sans-serif;
+            color: var(--text);
+            background: var(--bg);
+            display: grid;
+            grid-template-rows: auto 1fr auto;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Top Bar */
+        .header {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            box-shadow: var(--shadow);
+            z-index: 10;
+            padding: 12px 16px;
+            display: grid;
+            gap: 12px;
+        }
+
+        .header-top {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .brand {
+            flex: 1;
+            min-width: 200px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .brand-icon {
+            width: 24px;
+            height: 24px;
+            background: var(--primary);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .brand-text {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .stats {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .stat {
+            background: #f9fafb;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 6px 12px;
+            text-align: center;
+            min-width: 120px;
+        }
+
+        .stat-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            color: var(--muted);
+            letter-spacing: 0.5px;
+        }
+
+        .stat-value {
+            font-weight: 600;
+            font-size: 14px;
+            margin-top: 2px;
+        }
+
+        /* Controls */
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 8px;
+        }
+
+        .btn, .input {
+            height: 36px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            font: inherit;
+            padding: 0 12px;
+            transition: var(--transition);
+            outline: none;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .input {
+            background: white;
+            cursor: text;
+        }
+
+        .input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+        }
+
+        .btn {
+            background: white;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .btn:hover {
+            background: #f9fafb;
+            border-color: #d1d5db;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .btn-primary:hover {
+            background: #1d4ed8;
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+            border-color: var(--success);
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+            border-color: var(--danger);
+        }
+
+        .btn-warning {
+            background: var(--warning);
+            color: white;
+            border-color: var(--warning);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Main Content */
+        .main {
+            display: grid;
+            grid-template-columns: 1fr 200px 1fr;
+            gap: 0;
+            overflow: hidden;
+            min-height: 0;
+        }
+
+        .panel {
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            border-right: 1px solid var(--border);
+        }
+
+        .panel:last-child {
+            border-right: none;
+        }
+
+        .panel-header {
+            background: #f9fafb;
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .panel-title {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .panel-meta {
+            font-size: 11px;
+            color: var(--muted);
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .panel-body {
+            flex: 1;
+            overflow: auto;
+            overscroll-behavior: contain;
+            scrollbar-width: thin;
+            scrollbar-color: #d1d5db transparent;
+        }
+
+        .panel-body::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        .panel-body::-webkit-scrollbar-thumb {
+            background: #d1d5db;
+            border-radius: 3px;
+        }
+
+        /* Table */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+            table-layout: fixed;
+        }
+
+        th {
+            position: sticky;
+            top: 0;
+            background: #f9fafb;
+            padding: 8px 10px;
+            border-bottom: 2px solid var(--border);
+            text-align: left;
+            font-weight: 600;
+            font-size: 11px;
+            text-transform: uppercase;
+            color: var(--muted);
+            z-index: 2;
+            white-space: nowrap;
+        }
+
+        td {
+            padding: 8px 10px;
+            border-bottom: 1px solid #f3f4f6;
+            vertical-align: middle;
+            cursor: pointer;
+            transition: background var(--transition);
+        }
+
+        tr:hover td {
+            background: #f9fafb;
+        }
+
+        tr.selected td {
+            background: #eff6ff !important;
+        }
+
+        tr.conciliated td {
+            background: #f8fafc !important;
+            opacity: 0.7;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .badge-in {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .badge-out {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .badge-conciliated {
+            background: #e0e7ff;
+            color: #3730a3;
+        }
+
+        .amount {
+            font-weight: 600;
+            white-space: nowrap;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .ellipsis {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .tick-btn {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: 2px solid #d1d5db;
+            background: white;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            transition: var(--transition);
+            padding: 0;
+        }
+
+        .tick-btn:hover {
+            border-color: var(--primary);
+            transform: scale(1.1);
+        }
+
+        .tick-btn.checked {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+
+        .tick-btn.conciliated {
+            background: var(--success);
+            border-color: var(--success);
+            color: white;
+        }
+
+        .tick-btn:disabled {
+            cursor: default;
+            opacity: 0.6;
+        }
+
+        .tick-btn:disabled:hover {
+            transform: none;
+        }
+
+        /* Center Panel */
+        .center {
+            background: #f9fafb;
+            border-right: 1px solid var(--border);
+            border-left: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .center-header {
+            padding: 12px;
+            border-bottom: 1px solid var(--border);
+            text-align: center;
+            background: white;
+        }
+
+        .center-title {
+            font-weight: 600;
+            font-size: 13px;
+            margin-bottom: 4px;
+        }
+
+        .center-body {
+            flex: 1;
+            overflow: auto;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .draft-card {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 10px;
+            box-shadow: var(--shadow);
+        }
+
+        .draft-title {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin-bottom: 8px;
+        }
+
+        .draft-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            padding: 4px 0;
+        }
+
+        .draft-row.alert {
+            color: var(--warning);
+        }
+
+        .timeline-item {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 8px;
+            font-size: 11px;
+            display: grid;
+            grid-template-columns: 12px 1fr;
+            gap: 8px;
+            align-items: start;
+        }
+
+        .timeline-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #d1d5db;
+            margin-top: 2px;
+        }
+
+        .timeline-dot.active {
+            background: var(--primary);
+        }
+
+        .timeline-dot.conciliated {
+            background: var(--success);
+        }
+
+        /* Footer */
+        .footer {
+            background: white;
+            border-top: 1px solid var(--border);
+            padding: 8px 16px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 8px;
+            font-size: 12px;
+        }
+
+        .footer-stat {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .footer-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            color: var(--muted);
+        }
+
+        .footer-value {
+            font-weight: 600;
+        }
+
+        .context-menu {
+            position: fixed;
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 100;
+            min-width: 180px;
+            display: none;
+        }
+
+        .context-menu.show {
+            display: block;
+        }
+
+        .context-item {
+            padding: 8px 12px;
+            cursor: pointer;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+        }
+
+        .context-item:hover {
+            background: #f3f4f6;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 32px 16px;
+            color: var(--muted);
+        }
+
+        .input-cell {
+            width: 100%;
+            border: 1px solid transparent;
+            background: transparent;
+            padding: 4px;
+            font: inherit;
+            font-size: 12px;
+            outline: none;
+            border-radius: 3px;
+            transition: var(--transition);
+        }
+
+        .input-cell:hover {
+            border-color: #d1d5db;
+        }
+
+        .input-cell:focus {
+            border-color: var(--primary);
+            background: white;
+            box-shadow: 0 0 0 2px rgba(37,99,235,0.1);
+        }
+
+        @media (max-width: 1024px) {
+            .main {
+                grid-template-columns: 1fr;
+                grid-template-rows: 1fr auto 1fr;
+            }
+            
+            .center {
+                border-left: none;
+                border-right: none;
+                border-top: 1px solid var(--border);
+                border-bottom: 1px solid var(--border);
+            }
+
+            .stats {
+                flex-direction: column;
+            }
+
+            .stat {
+                min-width: auto;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .header {
+                padding: 8px;
+                gap: 8px;
+            }
+
+            .controls {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .panel-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            th, td {
+                padding: 6px 8px;
+                font-size: 11px;
+            }
+        }
+
+        .hidden-input {
+            position: absolute;
+            width: 0;
+            height: 0;
+            opacity: 0;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-top">
+            <div class="brand">
+                <div class="brand-icon">∑</div>
+                <div class="brand-text">Conciliação de Lançamentos</div>
+            </div>
+            <div class="stats">
+                <div class="stat">
+                    <div class="stat-label">Pendente Contábil</div>
+                    <div class="stat-value" id="accPending">R$ 0,00</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-label">Pendente Fiscal</div>
+                    <div class="stat-value" id="fisPending">R$ 0,00</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-label">Diferença</div>
+                    <div class="stat-value" id="diffPending">R$ 0,00</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-label">Conciliações</div>
+                    <div class="stat-value" id="groupCount">0</div>
+                </div>
+            </div>
+        </div>
+        <div class="controls">
+            <input type="text" class="input" id="filterInput" placeholder="Filtrar por CNPJ, nome ou valor..." style="grid-column: 1 / -1;">
+            <button class="btn btn-primary" id="conciliateBtn">Conciliar Seleção</button>
+            <button class="btn" id="openModuleBtn">Módulo Contábil</button>
+            <button class="btn" id="importBtn">Importar XML</button>
+            <input type="file" id="fileInput" class="hidden-input" accept=".xml" multiple>
+            <button class="btn btn-success" id="finalizeBtn">Finalizar</button>
+            <button class="btn btn-warning" id="downloadBtn">Baixar CSV</button>
+            <button class="btn btn-danger" id="clearBtn">Limpar Tudo</button>
+        </div>
+    </header>
+
+    <main class="main">
+        <section class="panel">
+            <div class="panel-header">
+                <div class="panel-title">📊 Lançamentos Contábeis</div>
+                <div class="panel-meta">
+                    <span id="accCount">0 itens</span>
+                    <span id="accSelected">0 selecionados</span>
+                </div>
+            </div>
+            <div class="panel-body" id="accBody">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width:80px">Data</th>
+                            <th style="width:200px">Descrição</th>
+                            <th style="width:100px">Valor</th>
+                            <th style="width:80px">Tipo</th>
+                            <th style="width:140px">CNPJ/CPF</th>
+                            <th style="width:100px">Débito</th>
+                            <th style="width:100px">Crédito</th>
+                            <th style="width:50px">✓</th>
+                        </tr>
+                    </thead>
+                    <tbody id="accTbody"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="center">
+            <div class="center-header">
+                <div class="center-title">Trilha de Conciliação</div>
+            </div>
+            <div class="center-body">
+                <div class="draft-card">
+                    <div class="draft-title">Seleção Atual</div>
+                    <div id="draftInfo" style="font-size:12px; margin-bottom:8px;">Selecione itens dos dois lados</div>
+                    <div class="draft-row">
+                        <span>Contábil:</span>
+                        <strong id="draftAcc">R$ 0,00</strong>
+                    </div>
+                    <div class="draft-row">
+                        <span>Fiscal:</span>
+                        <strong id="draftFis">R$ 0,00</strong>
+                    </div>
+                    <div class="draft-row" id="draftDiffRow">
+                        <span>Diferença:</span>
+                        <strong id="draftDiff">R$ 0,00</strong>
+                    </div>
+                    <button class="btn btn-primary" id="draftConciliateBtn" disabled style="width:100%; margin-top:8px;">
+                        Confirmar Conciliação
+                    </button>
+                </div>
+                <div id="timeline" style="font-size:11px; color:var(--muted);">
+                    Nenhuma conciliação realizada
+                </div>
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="panel-header">
+                <div class="panel-title">📋 Lançamentos Fiscais</div>
+                <div class="panel-meta">
+                    <span id="fisCount">0 itens</span>
+                    <span id="fisSelected">0 selecionados</span>
+                </div>
+            </div>
+            <div class="panel-body" id="fisBody">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width:80px">Data</th>
+                            <th style="width:100px">Valor</th>
+                            <th style="width:200px">Nome</th>
+                            <th style="width:140px">CNPJ/CPF</th>
+                            <th style="width:100px">NF</th>
+                            <th style="width:50px">✓</th>
+                        </tr>
+                    </thead>
+                    <tbody id="fisTbody"></tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <div class="footer-stat">
+            <span class="footer-label">Contábil Pendente</span>
+            <span class="footer-value" id="footAcc">R$ 0,00</span>
+        </div>
+        <div class="footer-stat">
+            <span class="footer-label">Fiscal Pendente</span>
+            <span class="footer-value" id="footFis">R$ 0,00</span>
+        </div>
+        <div class="footer-stat">
+            <span class="footer-label">Diferença Pendente</span>
+            <span class="footer-value" id="footDiff">R$ 0,00</span>
+        </div>
+        <div class="footer-stat">
+            <span class="footer-label">Status</span>
+            <span class="footer-value" id="status">Pronto</span>
+        </div>
+    </footer>
+
+    <div class="context-menu" id="contextMenu">
+        <button class="context-item" id="undoConciliation">↩ Desfazer Conciliação</button>
+    </div>
+
+    <script>
+        (function() {
+            // State Management
+            const state = {
+                accounting: [],
+                fiscal: [],
+                groups: [],
+                selAcc: new Set(),
+                selFis: new Set(),
+                finalized: null,
+                contextGroup: null
+            };
+
+            // DOM Cache
+            const $ = (id) => document.getElementById(id);
+            const dom = {
+                filterInput: $('filterInput'),
+                conciliateBtn: $('conciliateBtn'),
+                openModuleBtn: $('openModuleBtn'),
+                importBtn: $('importBtn'),
+                fileInput: $('fileInput'),
+                finalizeBtn: $('finalizeBtn'),
+                downloadBtn: $('downloadBtn'),
+                clearBtn: $('clearBtn'),
+                accTbody: $('accTbody'),
+                fisTbody: $('fisTbody'),
+                accCount: $('accCount'),
+                accSelected: $('accSelected'),
+                fisCount: $('fisCount'),
+                fisSelected: $('fisSelected'),
+                accPending: $('accPending'),
+                fisPending: $('fisPending'),
+                diffPending: $('diffPending'),
+                groupCount: $('groupCount'),
+                draftInfo: $('draftInfo'),
+                draftAcc: $('draftAcc'),
+                draftFis: $('draftFis'),
+                draftDiff: $('draftDiff'),
+                draftDiffRow: $('draftDiffRow'),
+                draftConciliateBtn: $('draftConciliateBtn'),
+                timeline: $('timeline'),
+                footAcc: $('footAcc'),
+                footFis: $('footFis'),
+                footDiff: $('footDiff'),
+                status: $('status'),
+                contextMenu: $('contextMenu'),
+                undoConciliation: $('undoConciliation')
+            };
+
+            // Utility Functions
+            const fmt = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
+            const currency = (v) => fmt.format(v || 0);
+            const taxId = (v) => {
+                const d = String(v || '').replace(/\D/g, '');
+                return d.length === 11 ? d.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4') :
+                       d.length === 14 ? d.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5') : v || '';
+            };
+            const dateNorm = (v) => {
+                if (!v) return '';
+                if (/^\d{2}\/\d{2}\/\d{4}$/.test(v)) return v;
+                const d = new Date(v);
+                return isNaN(d.getTime()) ? v : d.toLocaleDateString('pt-BR');
+            };
+            const uid = () => `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+
+            // Normalization
+            const normAcc = (e) => ({
+                id: e.id || uid(),
+                date: dateNorm(e.date),
+                desc: e.desc || e.description || '',
+                origDesc: e.origDesc || e.desc || e.description || '',
+                amount: Math.abs(Number(e.amount || 0)),
+                signed: Number(e.amount || 0),
+                dir: e.dir || (Number(e.amount || 0) < 0 ? 'out' : 'in'),
+                taxId: e.taxId || e.document || '',
+                debit: e.debit || e.debitCode || '',
+                credit: e.credit || e.creditCode || '',
+                groupId: e.groupId || null,
+                edited: e.edited || false
+            });
+
+            const normFis = (e) => ({
+                id: e.id || uid(),
+                date: dateNorm(e.date || e.issueDate),
+                amount: Math.abs(Number(e.amount || 0)),
+                name: e.name || e.supplier || '',
+                taxId: e.taxId || e.issuerTaxId || '',
+                nf: e.nf || e.invoiceNumber || e.docNumber || '',
+                groupId: e.groupId || null
+            });
+
+            // Storage
+            const save = () => {
+                try {
+                    localStorage.setItem('sisc_conciliation', JSON.stringify({
+                        accounting: state.accounting,
+                        fiscal: state.fiscal,
+                        groups: state.groups,
+                        finalized: state.finalized
+                    }));
+                } catch(e) {}
+            };
+
+            const load = () => {
+                try {
+                    const raw = localStorage.getItem('sisc_conciliation');
+                    if (!raw) return;
+                    const data = JSON.parse(raw);
+                    if (Array.isArray(data.accounting)) state.accounting = data.accounting.map(normAcc);
+                    if (Array.isArray(data.fiscal)) state.fiscal = data.fiscal.map(normFis);
+                    if (Array.isArray(data.groups)) state.groups = data.groups;
+                    state.finalized = data.finalized || null;
+                } catch(e) {}
+            };
+
+            // Filter
+            const filterTerm = () => dom.filterInput.value.toLowerCase().trim();
+            
+            const filterAcc = (e) => {
+                if (!filterTerm()) return true;
+                const hay = [e.desc, e.taxId, currency(e.amount), e.debit, e.credit, e.date].join(' ').toLowerCase();
+                return hay.includes(filterTerm());
+            };
+
+            const filterFis = (e) => {
+                if (!filterTerm()) return true;
+                const hay = [e.name, e.taxId, currency(e.amount), e.nf, e.date].join(' ').toLowerCase();
+                return hay.includes(filterTerm());
+            };
+
+            // Computed
+            const pendingAcc = () => state.accounting.filter(e => !e.groupId).reduce((s, e) => s + e.amount, 0);
+            const pendingFis = () => state.fiscal.filter(e => !e.groupId).reduce((s, e) => s + e.amount, 0);
+            
+            const draftTotals = () => {
+                const acc = state.accounting.filter(e => state.selAcc.has(e.id)).reduce((s, e) => s + e.amount, 0);
+                const fis = state.fiscal.filter(e => state.selFis.has(e.id)).reduce((s, e) => s + e.amount, 0);
+                return { acc, fis, diff: acc - fis };
+            };
+
+            const isReady = () => state.selAcc.size > 0 && state.selFis.size > 0;
+
+            // Selection
+            const toggleSel = (type, id, ctrl = false) => {
+                const set = type === 'acc' ? state.selAcc : state.selFis;
+                if (!ctrl) set.clear();
+                set.has(id) ? set.delete(id) : set.add(id);
+                render();
+            };
+
+            const clearSel = () => {
+                state.selAcc.clear();
+                state.selFis.clear();
+            };
+
+            // Conciliation
+            const conciliate = (trigger = '') => {
+                if (!isReady()) {
+                    dom.status.textContent = 'Selecione ao menos um item de cada lado';
+                    return;
+                }
+
+                const d = draftTotals();
+                const msg = [
+                    `Confirmar conciliação ${trigger ? `(${trigger})` : ''}?`,
+                    `Contábil: ${state.selAcc.size} itens - ${currency(d.acc)}`,
+                    `Fiscal: ${state.selFis.size} itens - ${currency(d.fis)}`,
+                    `Diferença: ${currency(d.diff)}`
+                ].join('\n');
+
+                if (!confirm(msg)) return;
+
+                const gid = `grp-${uid()}`;
+                const group = {
+                    id: gid,
+                    accIds: [...state.selAcc],
+                    fisIds: [...state.selFis],
+                    accAmt: d.acc,
+                    fisAmt: d.fis,
+                    diff: d.diff,
+                    createdAt: new Date().toISOString()
+                };
+
+                state.accounting = state.accounting.map(e => 
+                    state.selAcc.has(e.id) ? { ...e, groupId: gid, desc: autoDesc(e, state.fiscal.filter(f => state.selFis.has(f.id))) } : e
+                );
+                state.fiscal = state.fiscal.map(e => 
+                    state.selFis.has(e.id) ? { ...e, groupId: gid } : e
+                );
+                state.groups.unshift(group);
+                clearSel();
+                save();
+                dom.status.textContent = `Conciliação ${gid} confirmada`;
+                render();
+            };
+
+            const autoDesc = (acc, fisEntries) => {
+                const names = [...new Set(fisEntries.map(f => f.name).filter(Boolean))];
+                const prefix = acc.dir === 'out' ? 'PAGAMENTO A' : 'RECEBIMENTO DE';
+                return names.length ? `${prefix} - ${names.join(' / ')}` : acc.origDesc;
+            };
+
+            const undo = (gid) => {
+                const group = state.groups.find(g => g.id === gid);
+                if (!group) return;
+                if (!confirm(`Desfazer conciliação com ${group.accIds.length} contábeis e ${group.fisIds.length} fiscais?`)) return;
+
+                state.accounting = state.accounting.map(e => 
+                    e.groupId === gid ? { ...e, groupId: null, desc: e.origDesc } : e
+                );
+                state.fiscal = state.fiscal.map(e => 
+                    e.groupId === gid ? { ...e, groupId: null } : e
+                );
+                state.groups = state.groups.filter(g => g.id !== gid);
+                state.contextGroup = null;
+                dom.contextMenu.classList.remove('show');
+                save();
+                dom.status.textContent = `Conciliação ${gid} desfeita`;
+                render();
+            };
+
+            // XML Import
+            const parseXML = (text, filename) => {
+                const parser = new DOMParser();
+                const xml = parser.parseFromString(text, 'text/xml');
+                const tag = (n) => xml.getElementsByTagName(n)[0]?.textContent?.trim() || '';
+                return normFis({
+                    id: `xml-${uid()}`,
+                    date: tag('dhEmi') || tag('dEmi') || '',
+                    amount: Math.abs(Number((tag('vNF') || '0').replace(',', '.'))),
+                    name: tag('xNome') || filename,
+                    taxId: tag('CNPJ') || tag('CPF') || '',
+                    nf: tag('nNF') || ''
+                });
+            };
+
+            const importXMLs = async (files) => {
+                if (!files.length) return;
+                const entries = [];
+                for (const f of files) {
+                    entries.push(parseXML(await f.text(), f.name));
+                }
+                state.fiscal = [...entries, ...state.fiscal];
+                save();
+                dom.status.textContent = `${entries.length} XML(s) importados`;
+                render();
+            };
+
+            // CSV Export
+            const exportCSV = () => {
+                const header = ['Data', 'Descrição', 'Valor', 'Tipo', 'CNPJ/CPF', 'Débito', 'Crédito', 'Conciliado', 'Fiscal(ais)'];
+                const rows = state.accounting.map(e => {
+                    const fis = state.fiscal.filter(f => f.groupId === e.groupId);
+                    return [
+                        e.date, e.desc, currency(e.amount), e.dir === 'in' ? 'Entrada' : 'Saída',
+                        taxId(e.taxId), e.debit, e.credit, e.groupId ? 'Sim' : 'Não',
+                        fis.map(f => f.name).join(' | ')
+                    ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(';');
+                });
+                const blob = new Blob([[header.join(';'), ...rows].join('\n')], { type: 'text/csv' });
+                const url = URL.createObjectURL(blob);
+                const a = Object.assign(document.createElement('a'), { href: url, download: `conciliacao_${new Date().toISOString().slice(0,10)}.csv` });
+                a.click();
+                URL.revokeObjectURL(url);
+            };
+
+            // Finalize
+            const finalize = () => {
+                if (!confirm('Finalizar conciliação atual?')) return;
+                state.finalized = new Date().toISOString();
+                save();
+                dom.status.textContent = `Finalizado em ${new Date(state.finalized).toLocaleString('pt-BR')}`;
+                render();
+            };
+
+            // Clear
+            const clearAll = () => {
+                if (!confirm('Limpar todos os dados?')) return;
+                state.accounting = [];
+                state.fiscal = [];
+                state.groups = [];
+                state.finalized = null;
+                state.selAcc.clear();
+                state.selFis.clear();
+                dom.filterInput.value = '';
+                save();
+                render();
+            };
+
+            // Render
+            const render = () => {
+                // Accounting Table
+                const accFiltered = state.accounting.filter(filterAcc).sort((a, b) => {
+                    if (!!a.groupId !== !!b.groupId) return a.groupId ? 1 : -1;
+                    return new Date(b.date.split('/').reverse().join('-')) - new Date(a.date.split('/').reverse().join('-'));
+                });
+
+                dom.accTbody.innerHTML = accFiltered.length ? accFiltered.map(e => {
+                    const sel = state.selAcc.has(e.id);
+                    const conc = !!e.groupId;
+                    const cls = sel ? 'selected' : conc ? 'conciliated' : '';
+                    const tickCls = conc ? 'conciliated' : sel ? 'checked' : '';
+                    return `
+                        <tr class="${cls}" data-id="${e.id}" data-type="acc" data-group="${e.groupId || ''}">
+                            <td>${e.date || '—'}</td>
+                            <td><input class="input-cell" value="${e.desc.replace(/"/g, '&quot;')}" data-field="desc" data-id="${e.id}"></td>
+                            <td class="amount">${currency(e.amount)}</td>
+                            <td><span class="badge ${e.dir === 'in' ? 'badge-in' : 'badge-out'}">${e.dir === 'in' ? 'Entrada' : 'Saída'}</span></td>
+                            <td class="ellipsis">${taxId(e.taxId)}</td>
+                            <td><input class="input-cell" value="${e.debit}" data-field="debit" data-id="${e.id}"></td>
+                            <td><input class="input-cell" value="${e.credit}" data-field="credit" data-id="${e.id}"></td>
+                            <td><button class="tick-btn ${tickCls}" data-id="${e.id}" data-type="acc" ${conc ? 'disabled' : ''}>✓</button></td>
+                        </tr>
+                    `;
+                }).join('') : '<tr><td colspan="8" class="empty-state">Nenhum lançamento contábil</td></tr>';
+
+                // Fiscal Table
+                const fisFiltered = state.fiscal.filter(filterFis).sort((a, b) => {
+                    if (!!a.groupId !== !!b.groupId) return a.groupId ? 1 : -1;
+                    return new Date(b.date.split('/').reverse().join('-')) - new Date(a.date.split('/').reverse().join('-'));
+                });
+
+                dom.fisTbody.innerHTML = fisFiltered.length ? fisFiltered.map(e => {
+                    const sel = state.selFis.has(e.id);
+                    const conc = !!e.groupId;
+                    const cls = sel ? 'selected' : conc ? 'conciliated' : '';
+                    const tickCls = conc ? 'conciliated' : sel ? 'checked' : '';
+                    return `
+                        <tr class="${cls}" data-id="${e.id}" data-type="fis" data-group="${e.groupId || ''}">
+                            <td>${e.date || '—'}</td>
+                            <td class="amount">${currency(e.amount)}</td>
+                            <td>${e.name}${conc ? ' <span class="badge badge-conciliated">Conciliado</span>' : ''}</td>
+                            <td class="ellipsis">${taxId(e.taxId)}</td>
+                            <td>${e.nf || '—'}</td>
+                            <td><button class="tick-btn ${tickCls}" data-id="${e.id}" data-type="fis" ${conc ? 'disabled' : ''}>✓</button></td>
+                        </tr>
+                    `;
+                }).join('') : '<tr><td colspan="6" class="empty-state">Nenhum lançamento fiscal</td></tr>';
+
+                // Metrics
+                const pAcc = pendingAcc();
+                const pFis = pendingFis();
+                const pDiff = pAcc - pFis;
+                const d = draftTotals();
+
+                dom.accCount.textContent = `${accFiltered.length} itens`;
+                dom.accSelected.textContent = `${state.selAcc.size} selecionados`;
+                dom.fisCount.textContent = `${fisFiltered.length} itens`;
+                dom.fisSelected.textContent = `${state.selFis.size} selecionados`;
+                dom.accPending.textContent = currency(pAcc);
+                dom.fisPending.textContent = currency(pFis);
+                dom.diffPending.textContent = currency(pDiff);
+                dom.groupCount.textContent = state.groups.length;
+                dom.footAcc.textContent = currency(pAcc);
+                dom.footFis.textContent = currency(pFis);
+                dom.footDiff.textContent = currency(pDiff);
+                dom.draftAcc.textContent = currency(d.acc);
+                dom.draftFis.textContent = currency(d.fis);
+                dom.draftDiff.textContent = currency(d.diff);
+                dom.draftDiffRow.className = `draft-row${Math.abs(d.diff) > 0.01 ? ' alert' : ''}`;
+                dom.draftInfo.textContent = isReady() ? `${state.selAcc.size} contábeis × ${state.selFis.size} fiscais` : 'Selecione itens dos dois lados';
+                dom.draftConciliateBtn.disabled = !isReady();
+                dom.conciliateBtn.disabled = !isReady();
+
+                // Timeline
+                dom.timeline.innerHTML = state.groups.length ? state.groups.slice(0, 10).map(g => `
+                    <div class="timeline-item">
+                        <div class="timeline-dot conciliated"></div>
+                        <div>
+                            <strong>${g.accIds.length} contábeis × ${g.fisIds.length} fiscais</strong><br>
+                            <span style="font-size:10px;color:var(--muted)">${currency(g.accAmt)} | Dif: ${currency(g.diff)}</span>
+                            <br><button class="btn" style="font-size:10px;padding:2px 6px;height:auto;margin-top:4px;" data-group="${g.id}" onclick="undoConciliation('${g.id}')">Desfazer</button>
+                        </div>
+                    </div>
+                `).join('') : 'Nenhuma conciliação realizada';
+
+                // Event Delegation
+                attachEvents();
+            };
+
+            // Events
+            const attachEvents = () => {
+                // Row clicks
+                document.querySelectorAll('#accTbody tr[data-id], #fisTbody tr[data-id]').forEach(row => {
+                    row.onclick = (e) => {
+                        if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
+                        const type = row.dataset.type;
+                        const id = row.dataset.id;
+                        const groupId = row.dataset.group;
+                        if (groupId) {
+                            state.contextGroup = groupId;
+                            const rect = row.getBoundingClientRect();
+                            dom.contextMenu.style.left = rect.left + 'px';
+                            dom.contextMenu.style.top = rect.bottom + 'px';
+                            dom.contextMenu.classList.add('show');
+                            return;
+                        }
+                        toggleSel(type, id, e.ctrlKey || e.metaKey);
+                    };
+                });
+
+                // Tick buttons
+                document.querySelectorAll('.tick-btn[data-id]').forEach(btn => {
+                    btn.onclick = (e) => {
+                        e.stopPropagation();
+                        toggleSel(btn.dataset.type, btn.dataset.id, e.ctrlKey || e.metaKey);
+                    };
+                });
+
+                // Input cells
+                document.querySelectorAll('.input-cell').forEach(input => {
+                    input.onclick = (e) => e.stopPropagation();
+                    input.onchange = () => {
+                        const id = input.dataset.id;
+                        const field = input.dataset.field;
+                        const value = input.value;
+                        state.accounting = state.accounting.map(e => {
+                            if (e.id !== id) return e;
+                            if (field === 'desc') {
+                                return { ...e, desc: value, edited: value !== e.origDesc };
+                            }
+                            return { ...e, [field]: value, edited: true };
+                        });
+                        save();
+                    };
+                });
+            };
+
+            // Context menu
+            dom.undoConciliation.onclick = () => {
+                if (state.contextGroup) undo(state.contextGroup);
+            };
+
+            document.addEventListener('click', (e) => {
+                if (!dom.contextMenu.contains(e.target)) {
+                    dom.contextMenu.classList.remove('show');
+                    state.contextGroup = null;
+                }
+            });
+
+            // Button Events
+            dom.conciliateBtn.onclick = () => conciliate('manual');
+            dom.draftConciliateBtn.onclick = () => conciliate('trilha');
+            dom.openModuleBtn.onclick = () => window.open('./contabil.html', '_blank');
+            dom.importBtn.onclick = () => dom.fileInput.click();
+            dom.fileInput.onchange = async () => {
+                await importXMLs([...dom.fileInput.files]);
+                dom.fileInput.value = '';
+            };
+            dom.downloadBtn.onclick = exportCSV;
+            dom.finalizeBtn.onclick = finalize;
+            dom.clearBtn.onclick = clearAll;
+            dom.filterInput.oninput = render;
+
+            // Keyboard shortcuts
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    dom.contextMenu.classList.remove('show');
+                    state.contextGroup = null;
+                }
+                if (e.key === 'Enter' && isReady() && (e.ctrlKey || e.metaKey)) {
+                    conciliate('atalho');
+                }
+            });
+
+            // Global undo function for timeline buttons
+            window.undoConciliation = undo;
+
+            // Drag scroll
+            document.querySelectorAll('.panel-body').forEach(body => {
+                let isDown = false, startX, startY, scrollLeft, scrollTop;
+                
+                body.addEventListener('mousedown', (e) => {
+                    if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
+                    isDown = true;
+                    body.style.cursor = 'grabbing';
+                    startX = e.pageX - body.offsetLeft;
+                    startY = e.pageY - body.offsetTop;
+                    scrollLeft = body.scrollLeft;
+                    scrollTop = body.scrollTop;
+                });
+
+                body.addEventListener('mouseleave', () => {
+                    isDown = false;
+                    body.style.cursor = 'default';
+                });
+
+                body.addEventListener('mouseup', () => {
+                    isDown = false;
+                    body.style.cursor = 'default';
+                });
+
+                body.addEventListener('mousemove', (e) => {
+                    if (!isDown) return;
+                    e.preventDefault();
+                    const x = e.pageX - body.offsetLeft;
+                    const y = e.pageY - body.offsetTop;
+                    body.scrollLeft = scrollLeft - (x - startX);
+                    body.scrollTop = scrollTop - (y - startY);
+                });
+            });
+
+            // Cross-tab communication
+            window.addEventListener('storage', (e) => {
+                if (e.key === 'sisc_conciliation_shared') {
+                    try {
+                        const payload = JSON.parse(e.newValue);
+                        if (payload?.accounting?.length) {
+                            state.accounting = payload.accounting.map(normAcc);
+                            if (payload.fiscal?.length) state.fiscal = payload.fiscal.map(normFis);
+                            save();
+                            render();
+                            dom.status.textContent = 'Dados recebidos do módulo contábil';
+                        }
+                    } catch {}
+                }
+            });
+
+            // Init
+            load();
+            render();
+        })();
+    </script>
+</body>
+</html>
